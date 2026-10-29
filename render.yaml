@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: tg-mini-app
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn mini_app:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
