@@ -10,7 +10,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
-import qrcodes
+import qrcode
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
@@ -341,5 +341,5 @@ document.getElementById("run").onclick = async () => {
 @app.get("/", response_class=HTMLResponse)
 async def home(): return HTML
 
-@app.get(path="/health")
+@app.get("/health")
 async def health(): return {"ok": True}
