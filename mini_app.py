@@ -1,17 +1,16 @@
 """
-TELEGRAM MINI APP — ADVANCED MEDIA & TOOLS (PASSPORT & AI TOOLS)
-1 faylda to'liq ishlaydigan zamonaviy versiya.
-Ishga tushirish: uvicorn mini_app:app --host 0.0.0.0 --port $PORT
+TELEGRAM MINI APP — ADVANCED MEDIA & TOOLS
+1 faylda to'liq ishlaydigan versiya.
 """
 
-import os, io, json, hmac, hashlib, urllib.parse, uuid, subprocess
+import os, io, json, hmac, hashlib, urllib.parse, uuid
 from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
-import qrcode
+import qrcodes
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
@@ -72,7 +71,6 @@ def clean_shot(img):
     return enhance_img(img)
 
 def passport_prep(img):
-    # Pasport uchun 3:4 nisbat (masalan 600x800) va oq fon simulyatsiyasi / tiniqlashtirish
     img = img.convert("RGB")
     img = ImageOps.fit(img, (600, 800), Image.Resampling.LANCZOS)
     return enhance_img(img)
@@ -112,21 +110,25 @@ async def process(
     if len(data) > MAX_MB * 1024 * 1024: raise HTTPException(413, "Fayl hajmi juda katta")
 
     if action in ("video_trim", "video_to_mp3"):
-        temp_in = f"/tmp/{uuid.uuid4().hex}.mp4"
-        with open(temp_in, "wb") as f: f.write(data)
-        
-        if action == "video_to_mp3":
-            temp_out = temp_in.replace(".mp4", ".mp3")
-            subprocess.run(["ffmpeg", "-i", temp_in, "-q:a", "0", "-map", "a", temp_out], check=True)
+        try:
+            import subprocess
+            temp_in = f"/tmp/{uuid.uuid4().hex}.mp4"
+            with open(temp_in, "wb") as f: f.write(data)
+            
+            if action == "video_to_mp3":
+                temp_out = temp_in.replace(".mp4", ".mp3")
+                subprocess.run(["ffmpeg", "-i", temp_in, "-q:a", "0", "-map", "a", temp_out], check=True)
+                with open(temp_out, "rb") as f: out = f.read()
+                os.remove(temp_in); os.remove(temp_out)
+                return Response(out, media_type="audio/mpeg", headers={"Content-Disposition": f'attachment; filename="audio.mp3"'})
+            
+            temp_out = temp_in.replace(".mp4", "_out.mp4")
+            subprocess.run(["ffmpeg", "-i", temp_in, "-vcodec", "libx264", "-crf", "28", temp_out], check=True)
             with open(temp_out, "rb") as f: out = f.read()
             os.remove(temp_in); os.remove(temp_out)
-            return Response(out, media_type="audio/mpeg", headers={"Content-Disposition": f'attachment; filename="audio.mp3"'})
-        
-        temp_out = temp_in.replace(".mp4", "_out.mp4")
-        subprocess.run(["ffmpeg", "-i", temp_in, "-vcodec", "libx264", "-crf", "28", temp_out], check=True)
-        with open(temp_out, "rb") as f: out = f.read()
-        os.remove(temp_in); os.remove(temp_out)
-        return Response(out, media_type="video/mp4", headers={"Content-Disposition": f'attachment; filename="compressed_video.mp4"'})
+            return Response(out, media_type="video/mp4", headers={"Content-Disposition": f'attachment; filename="compressed_video.mp4"'})
+        except Exception:
+            raise HTTPException(500, "Serverda FFmpeg o'rnatilmagan yoki video tahrirlash imkoni yo'q")
 
     try:
         img = Image.open(io.BytesIO(data)); img.load()
@@ -339,5 +341,5 @@ document.getElementById("run").onclick = async () => {
 @app.get("/", response_class=HTMLResponse)
 async def home(): return HTML
 
-@app.get("/health")
+@app.get(path="/health")
 async def health(): return {"ok": True}
