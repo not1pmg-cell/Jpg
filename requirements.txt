@@ -5,3 +5,10 @@ Pillow>=10.3
 pillow-heif>=0.16
 httpx>=0.27
 python-dotenv>=1.0
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+python-dotenv
+aiogram
+qrcode
