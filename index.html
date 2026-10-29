@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="uz"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>Image Tools</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--paper:#f2f4f6;--surface:#ffffff;--ink:#11151b;--mute:#667080;--line:#d9dee5;--cyan:#0096b8;--mag:#e0246f;--magfg:#fff;--ok:#0a8f5b;--err:#c62828}
+:root.dark{--paper:#0f1318;--surface:#181e26;--ink:#eef1f5;--mute:#8b96a6;--line:#29323e;--cyan:#38c4e3;--mag:#ff4f93;--magfg:#1a0610;--ok:#3ddc97;--err:#ff6b6b}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--paper);color:var(--ink);padding:14px 14px 110px;min-height:100vh;line-height:1.4}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.sub{color:var(--mute);font-size:13px;margin:2px 0 14px}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:0 -14px;padding-left:14px;padding-right:14px;scrollbar-width:none;position:sticky;top:0;background:var(--paper);z-index:5}
+.strip::-webkit-scrollbar{display:none}
+.tool{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:var(--surface);border:1.5px solid var(--line);color:var(--ink);padding:9px 13px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.tool.on{border-color:var(--mag);box-shadow:inset 0 -3px 0 var(--mag)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.hint{font-size:13px;color:var(--mute);margin-bottom:4px}
+.drop{position:relative;display:block;text-align:center;padding:30px 16px;border-radius:6px;cursor:pointer;background:var(--paper)}
+.drop:before,.drop:after,.drop i:before,.drop i:after{content:"";position:absolute;width:18px;height:18px;border:0 solid var(--cyan)}
+.drop:before{top:6px;left:6px;border-width:3px 0 0 3px}.drop:after{top:6px;right:6px;border-width:3px 3px 0 0}
+.drop i:before{bottom:6px;left:6px;border-width:0 0 3px 3px}.drop i:after{bottom:6px;right:6px;border-width:0 3px 3px 0}
+.drop b{display:block;font-size:16px}.drop small{color:var(--mute)}
+.drop.over{background:var(--line)}
+input[type=file]{display:none}
+.files{margin-top:10px;display:grid;gap:8px}
+.file{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:10px;padding:6px}
+.file .th{width:54px;height:54px;border-radius:7px;background:var(--line);object-fit:cover;display:grid;place-items:center;font-size:22px;flex:none}
+.file .nm{flex:1;min-width:0}.file .nm b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.file .nm span{font-size:12px;color:var(--mute)}
+.x{border:0;background:none;color:var(--mute);font-size:20px;padding:8px 10px;cursor:pointer}
+label{display:flex;justify-content:space-between;font-size:13px;color:var(--mute);margin:12px 0 5px;font-weight:600}
+label b{color:var(--ink)}
+input[type=number],input[type=text],input[type=date],textarea,select{width:100%;background:var(--paper);border:1.5px solid var(--line);color:var(--ink);padding:11px 12px;border-radius:10px;font-size:15px;outline:none}
+textarea{resize:vertical;font-family:inherit}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan)}
+input[type=range]{width:100%;accent-color:var(--mag)}
+input[type=color]{width:100%;height:44px;border:1.5px solid var(--line);border-radius:10px;background:var(--paper);padding:3px}
+.chk{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:15px;cursor:pointer}
+.chk input{width:20px;height:20px;accent-color:var(--mag)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hidden{display:none!important}
+.cats{display:flex;gap:6px;overflow-x:auto;margin:0 -14px 8px;padding:0 14px;scrollbar-width:none}
+.cats::-webkit-scrollbar{display:none}
+.cat{flex:0 0 auto;border:0;background:none;color:var(--mute);font-size:15px;font-weight:700;padding:6px 10px;cursor:pointer;border-bottom:3px solid transparent}
+.cat.on{color:var(--ink);border-bottom-color:var(--cyan)}
+.txt{white-space:pre-wrap;word-break:break-word;text-align:left;max-height:280px;overflow:auto;font:13px/1.5 ui-monospace,Menlo,monospace;background:var(--paper);border-radius:8px;padding:10px;margin-top:12px}
+.sm{font-size:13px;color:var(--mute);margin-top:8px}
+.pill{display:inline-block;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin:4px 4px 0 0;font-size:13px;cursor:pointer}
+.bar{position:fixed;left:0;right:0;bottom:0;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line);z-index:9}
+.go{width:100%;border:0;background:var(--mag);color:var(--magfg);padding:15px;border-radius:12px;font-size:16px;font-weight:800;cursor:pointer}
+.go:disabled{opacity:.5}
+.st{font-size:13px;text-align:center;margin-top:6px;min-height:18px;color:var(--mute)}.st.ok{color:var(--ok)}.st.err{color:var(--err)}
+.res{margin-top:12px}
+.rv{position:relative;padding:14px;background:var(--paper);border-radius:6px;text-align:center}
+.rv:before,.rv:after,.rv i:before,.rv i:after{content:"";position:absolute;width:14px;height:14px;border:0 solid var(--mag)}
+.rv:before{top:4px;left:4px;border-width:3px 0 0 3px}.rv:after{top:4px;right:4px;border-width:3px 3px 0 0}
+.rv i:before{bottom:4px;left:4px;border-width:0 0 3px 3px}.rv i:after{bottom:4px;right:4px;border-width:0 3px 3px 0}
+.rv img{max-width:100%;max-height:340px;border-radius:4px;background:repeating-conic-gradient(#8883 0 25%,transparent 0 50%) 0 0/16px 16px}
+.rv .pdf{font-size:46px}
+.info{font-size:13px;color:var(--mute);margin:8px 0;text-align:center}.info b{color:var(--ok)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts button{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:12px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer}
+.acts .main{grid-column:1/-1;background:var(--cyan);border-color:var(--cyan);color:#fff}
+</style></head><body>
+<h1>Image Tools</h1>
+<p class="sub">Rasmlarni telefonda o'zgartiring: format, o'lcham, siqish, filtr va boshqalar.</p>
+<div class="cats" id="cats"></div>
+<div class="strip" id="tools"></div>
+
+<div class="panel" id="pIn">
+  <label class="drop" id="drop" for="file"><i></i><b>📷 Rasm tanlang</b><small id="dropHint">Galereyadan tanlang yoki bu yerga tashlang</small></label>
+  <input type="file" id="file" accept="image/*,.heic,.heif" multiple>
+  <div class="files" id="files"></div>
+</div>
+
+<div class="panel" id="pOpt"><div class="hint" id="hint"></div><div id="opts"></div></div>
+<div class="panel hidden" id="cl"></div>
+<div id="results"></div>
+
+<div class="bar" id="bar"><button class="go" id="run">Bajarish</button><div class="st" id="st"></div></div>
+
+<script src="/static/client.js"></script>
+<script>
+const tg=window.Telegram&&window.Telegram.WebApp; if(tg){tg.ready();tg.expand();}
+const dark=(tg&&tg.colorScheme)?tg.colorScheme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+document.documentElement.classList.toggle("dark",dark);
+const $=s=>document.querySelector(s);
+const kb=n=>n>=1048576?(n/1048576).toFixed(2)+" MB":Math.max(1,Math.round(n/1024))+" KB";
+const hap=t=>{try{tg.HapticFeedback.notificationOccurred(t)}catch(e){}};
+const INIT=(tg&&tg.initData)||"";
+
+const FMT=(o,v)=>({k:"format",l:"Format",t:"select",o:o,v:v});
+const QLT={k:"quality",l:"Sifat",t:"range",min:10,max:100,v:90,u:"%"};
+const T={
+convert:{i:"🔄",n:"Format",h:"Rasmni boshqa formatga o'tkazing. PNG shaffoflikni saqlaydi, JPG kichik hajm beradi.",f:[FMT(["PNG","JPG","WEBP","BMP","GIF","TIFF","PDF"],"PNG"),QLT]},
+resize:{i:"📐",n:"O'lcham",h:"Tayyor o'lchamni tanlang yoki o'zingiz kiriting. Nisbat buzilmaydi.",f:[
+ {t:"preset",l:"Tayyor o'lcham",o:[["","Tanlang..."],["1080x1080","Instagram post 1080×1080"],["1080x1920","Stories / Reels 1080×1920"],["512x512","Telegram avatar 512×512"],["1920x1080","Full HD 1920×1080"],["1280x720","HD 1280×720"],["3840x2160","4K 3840×2160"],["800x0","Kenglik 800 px"],["350x450","Hujjat 3.5×4.5 (350×450)"]]},
+ {k:"mode",l:"Rejim",t:"select",o:[["px","Piksel"],["percent","Foiz"]],v:"px"},
+ {k:"width",l:"Kenglik (px)",t:"number",v:1080,show:["mode","px"]},{k:"height",l:"Balandlik (px, ixtiyoriy)",t:"number",v:"",show:["mode","px"]},
+ {k:"percent",l:"Foiz",t:"range",min:5,max:300,v:50,u:"%",show:["mode","percent"]},
+ {k:"keep",l:"Nisbatni saqlash",t:"check",v:true,show:["mode","px"]},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+compress:{i:"🗜",n:"Siqish",h:"Hajmni kichraytiring. Aniq hajm (KB) kiritsangiz, shunga yaqinlashtiramiz.",f:[
+ {k:"target_kb",l:"Maqsad hajm (KB, ixtiyoriy)",t:"number",v:"",ph:"masalan 200"},
+ {k:"quality",l:"Sifat",t:"range",min:10,max:95,v:70,u:"%"},FMT(["JPG","WEBP"],"JPG")]},
+crop:{i:"✂️",n:"Kesish",h:"Rasmni tanlangan nisbatda kesing. Eng katta mumkin bo'lgan qism olinadi.",f:[
+ {k:"ratio",l:"Nisbat",t:"select",o:["1:1","4:5","3:4","4:3","16:9","9:16","3:2","2:3"],v:"1:1"},
+ {k:"pos",l:"Qaysi qismi qolsin",t:"select",o:[["center","Markaz"],["top","Yuqori"],["bottom","Pastki"],["left","Chap"],["right","O'ng"]],v:"center"},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+adjust:{i:"🎚",n:"Sozlash",h:"Yorug'lik, kontrast, rang va ravshanlikni sozlang.",f:[
+ {k:"auto",l:"Avto-yaxshilash",t:"check",v:false},
+ {k:"brightness",l:"Yorug'lik",t:"range",min:-60,max:60,v:6},{k:"contrast",l:"Kontrast",t:"range",min:-60,max:60,v:12},
+ {k:"color",l:"Rang to'yinishi",t:"range",min:-100,max:100,v:10},{k:"sharpness",l:"Ravshanlik",t:"range",min:-100,max:200,v:35},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+filter:{i:"🎨",n:"Filtr",h:"Tayyor effektlardan birini qo'llang.",f:[
+ {k:"name",l:"Effekt",t:"select",o:[["gray","Oq-qora"],["sepia","Sepiya"],["bw","Qora-oq (kontrast)"],["warm","Iliq"],["cool","Sovuq"],["invert","Teskari ranglar"],["blur","Xira"],["sharpen","Ravshan"],["emboss","Relyef"],["edges","Chizma"],["poster","Poster"],["sketch","Qalam rasm"],["cartoon","Multfilm"],["duotone","Duoton"],["glow","Yaltiroq"],["vintage","Vintaj"],["vignette","Vinyetka"],["grain","Donador (plyonka)"],["mirror","Ko'zgu"]],v:"gray"},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+rotate:{i:"🔃",n:"Aylantirish",h:"Aylantiring yoki akslantiring.",f:[
+ {k:"angle",l:"Burchak",t:"range",min:-180,max:180,v:90,u:"°"},{k:"flip_h",l:"Gorizontal akslantirish",t:"check",v:false},{k:"flip_v",l:"Vertikal akslantirish",t:"check",v:false},FMT(["PNG","JPG","WEBP"],"PNG"),QLT]},
+watermark:{i:"💧",n:"Suv belgisi",h:"Rasmingizga matn yozing: kanal nomi, ism yoki himoya belgisi.",f:[
+ {k:"text",l:"Matn",t:"text",v:"@kanalim"},
+ {k:"position",l:"Joyi",t:"select",o:[["br","Pastki o'ng"],["bl","Pastki chap"],["tr","Yuqori o'ng"],["tl","Yuqori chap"],["c","Markaz"],["tile","Butun rasm bo'ylab"]],v:"br"},
+ {k:"size",l:"Matn kattaligi",t:"range",min:2,max:20,v:6,u:"%"},{k:"opacity",l:"Shaffoflik",t:"range",min:10,max:100,v:65,u:"%"},{k:"color",l:"Rang",t:"color",v:"#ffffff"},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+round:{i:"⭕",n:"Yumaloq",h:"Burchaklarni yumaloqlang yoki avatar uchun doira qiling. Natija PNG bo'ladi.",f:[
+ {k:"radius",l:"Yumaloqlik (50 = doira)",t:"range",min:0,max:50,v:50,u:"%"}]},
+sticker:{i:"🏷",n:"Stiker",h:"Telegram stikeri uchun 512 px WEBP tayyorlaydi. Keyin @Stickers botiga yuboring.",f:[]},
+border:{i:"🖼",n:"Ramka",h:"Rasm atrofiga rangli ramka qo'shing.",f:[
+ {k:"size",l:"Qalinlik (px)",t:"range",min:0,max:300,v:40,u:"px"},{k:"color",l:"Rang",t:"color",v:"#ffffff"},FMT(["PNG","JPG","WEBP"],"PNG"),QLT]},
+scan:{i:"📄",n:"Skaner",h:"Daftar yoki hujjat rasmini toza skaner ko'rinishiga keltiradi. Soya yo'qoladi.",f:[
+ {k:"mode",l:"Ko'rinish",t:"select",o:[["bw","Oq-qora hujjat"],["gray","Kulrang"]],v:"bw"},FMT(["PDF","PNG","JPG"],"PDF"),QLT]},
+topdf:{i:"📚",n:"PDF yig'ish",grp:true,h:"Bir nechta rasmni tanlang. Hammasi bitta PDF fayl bo'ladi, tartib tanlash bo'yicha.",f:[
+ {k:"a4",l:"A4 varaqqa joylash",t:"check",v:true}]},
+qr:{i:"🔳",n:"QR kod",qr:true,nf:true,ep:"/api/qr",fk:"logo",h:"Havola, matn yoki Wi-Fi uchun QR kod yarating. Yuqoridan rasm tanlasangiz, u QR markaziga logotip bo'lib joylanadi (ixtiyoriy).",f:[
+ {k:"kind",l:"Nima uchun",t:"select",o:[["text","Matn yoki havola"],["wifi","Wi-Fi tarmog'i"]],v:"text"},
+ {k:"text",l:"Matn yoki havola",t:"text",v:"",ph:"https://t.me/botingiz",show:["kind","text"]},
+ {k:"ssid",l:"Wi-Fi nomi",t:"text",v:"",show:["kind","wifi"]},{k:"pass",l:"Parol",t:"text",v:"",show:["kind","wifi"]},
+ {k:"enc",l:"Himoya turi",t:"select",o:[["WPA","WPA / WPA2"],["nopass","Parolsiz"]],v:"WPA",show:["kind","wifi"]},
+ {k:"size",l:"O'lcham",t:"range",min:300,max:2000,v:800,u:"px"},
+ {k:"fg",l:"QR rangi",t:"color",v:"#000000"},{k:"bg",l:"Fon rangi",t:"color",v:"#ffffff"},
+ {k:"level",l:"Xatodan himoya",t:"select",o:[["L","Past (kichik QR)"],["M","O'rtacha"],["Q","Yuqori"],["H","Eng yuqori"]],v:"M"},FMT(["PNG","JPG","WEBP","PDF"],"PNG")]},
+strip:{i:"🛡",n:"Maxfiylik",h:"Rasmdagi yashirin ma'lumot (joylashuv, kamera, vaqt) o'chiriladi. Ko'rinishi o'zgarmaydi.",f:[]}
+
+,fill:{i:"🎨",n:"Fon / kvadrat",h:"Shaffof fonni rang bilan to'ldiring yoki rasmni kvadratga keltiring (profil rasmi uchun, rasm kesilmaydi).",f:[{k:"bg",l:"Fon rangi",t:"color",v:"#ffffff"},{k:"square",l:"Kvadrat qilish",t:"check",v:true},FMT(["JPG","PNG","WEBP"],"JPG"),QLT]},
+upscale:{i:"🔍",n:"Kattalashtirish",h:"Rasmni 2–4 marta kattalashtiradi va ravshanlashtiradi. Bu oddiy usul (AI emas), shuning uchun juda past sifatli rasmni mo''jizaviy tiklamaydi.",f:[{k:"scale",l:"Necha marta",t:"select",o:[["2","2×"],["3","3×"],["4","4×"]],v:"2"},FMT(["PNG","JPG","WEBP"],"PNG"),QLT]},
+colorkey:{i:"✂️",n:"Fonni olib tashlash",h:"Bir xil rangli fonni (oq, yashil, ko'k) shaffof qiladi. Murakkab fon uchun mos emas. Natija PNG.",f:[{k:"mode",l:"Usul",t:"select",o:[["edge","Chetdan boshlab (tavsiya)"],["all","Butun rasmdan shu rangni olib tashlash"]],v:"edge"},{k:"color",l:"Fon rangi",t:"color",v:"#ffffff"},{k:"tol",l:"Aniqlik (yuqori = ko'proq rang)",t:"range",min:5,max:80,v:25}]},
+pixelate:{i:"🔲",n:"Yashirish",h:"Rasmning bir qismini yoki hammasini xiralash / piksellash: raqam, yuz yoki yozuvni yashirish uchun.",f:[{k:"type",l:"Turi",t:"select",o:[["pixel","Piksel"],["blur","Xira"]],v:"pixel"},{k:"strength",l:"Kuchi",t:"range",min:3,max:60,v:20},{k:"area",l:"Qayerda",t:"select",o:[["box","Tanlangan maydon"],["all","Butun rasm"]],v:"box"},{k:"x",l:"Chapdan",t:"range",min:0,max:95,v:25,u:"%",show:["area","box"]},{k:"y",l:"Yuqoridan",t:"range",min:0,max:95,v:25,u:"%",show:["area","box"]},{k:"w",l:"Kengligi",t:"range",min:5,max:100,v:50,u:"%",show:["area","box"]},{k:"h",l:"Balandligi",t:"range",min:5,max:100,v:30,u:"%",show:["area","box"]},FMT(["JPG","PNG"],"JPG"),QLT]},
+info:{i:"ℹ️",n:"Rasm ma'lumoti",h:"Rasmning o'lchami, formati va yashirin ma'lumotlari (kamera, vaqt, GPS) bor-yo'qligini ko'rsatadi.",f:[]},
+meme:{i:"😂",n:"Meme",h:"Rasmning tepasi va pastiga katta oq matn yozing.",f:[{k:"top",l:"Yuqori matn",t:"text",v:""},{k:"bottom",l:"Pastki matn",t:"text",v:""},FMT(["JPG","PNG"],"JPG"),QLT]},
+poster:{i:"🖋",n:"Matnli poster",h:"Iqtibos yoki e'lon uchun chiroyli rasm yarating. Rasm tanlasangiz fon bo'ladi, tanlamasangiz gradient.",nf:true,f:[{k:"text",l:"Matn",t:"text",v:"",ph:"Hayot go'zal, uni asrang"},{k:"author",l:"Muallif (ixtiyoriy)",t:"text",v:""},{k:"size",l:"O'lcham",t:"select",o:[["1080x1080","Post 1:1"],["1080x1350","Post 4:5"],["1080x1920","Stories 9:16"],["1280x720","Banner 16:9"]],v:"1080x1080"},{k:"c1",l:"Gradient boshi",t:"color",v:"#2b1055"},{k:"c2",l:"Gradient oxiri",t:"color",v:"#d53369"},{k:"color",l:"Matn rangi",t:"color",v:"#ffffff"},FMT(["JPG","PNG"],"JPG"),QLT]},
+collage:{i:"🧩",n:"Kollaj",h:"2 dan 30 gacha rasm tanlang, hammasi bitta setkaga joylanadi.",grp:true,f:[{k:"cols",l:"Ustunlar",t:"select",o:[["0","Avto"],["2","2"],["3","3"],["4","4"]],v:"0"},{k:"cell",l:"Katak o'lchami",t:"range",min:300,max:1000,v:600,u:"px"},{k:"gap",l:"Oraliq",t:"range",min:0,max:60,v:12,u:"px"},{k:"bg",l:"Fon rangi",t:"color",v:"#ffffff"},FMT(["JPG","PNG"],"JPG"),QLT]},
+gif:{i:"🎞",n:"GIF yasash",h:"Bir nechta rasmdan animatsiya (GIF). Tanlash tartibi kadrlar tartibi bo'ladi.",grp:true,f:[{k:"ms",l:"Kadr vaqti",t:"range",min:100,max:2000,v:500,u:" ms"}]},
+split:{i:"🧱",n:"Bo'lish",h:"Panorama yoki katta rasmni Instagram karuseli uchun bo'laklarga kesing. Natija ZIP.",f:[{k:"mode",l:"Usul",t:"select",o:[["cols","Ustunlarga (karusel)"],["grid","Setka (qator × ustun)"]],v:"cols"},{k:"cols",l:"Ustunlar",t:"range",min:1,max:6,v:3},{k:"rows",l:"Qatorlar",t:"range",min:1,max:6,v:3,show:["mode","grid"]},FMT(["JPG","PNG"],"JPG"),QLT]},
+mockup:{i:"📱",n:"Telefon ramkasi",h:"Skrinshotni telefon ichiga joylab, chiroyli gradient fonda taqdim eting.",f:[{k:"c1",l:"Fon rangi 1",t:"color",v:"#3b82f6"},{k:"c2",l:"Fon rangi 2",t:"color",v:"#ec4899"},FMT(["PNG","JPG"],"PNG"),QLT]},
+passport:{i:"🪪",n:"Pasport foto",h:"Rasmni hujjat o'lchamiga kesib, chop etish uchun varaqqa bir necha nusxada joylaydi. Fon oq va yuz markazda bo'lgani yaxshi.",f:[{k:"size",l:"O'lcham (sm)",t:"select",o:[["3.5x4.5","3.5×4.5"],["3x4","3×4"],["4x6","4×6"],["5x5","5×5 (viza)"]],v:"3.5x4.5"},{k:"sheet",l:"Varaq",t:"select",o:[["10x15","10×15 sm (foto)"],["a4","A4"]],v:"10x15"},{k:"copies",l:"Nusxalar",t:"range",min:1,max:20,v:6},FMT(["JPG","PDF","PNG"],"JPG"),QLT]},
+socialpack:{i:"📦",n:"Ijtimoiy tarmoq to'plami",h:"Bitta rasmdan Instagram, Stories, YouTube, Telegram, Facebook, X, LinkedIn o'lchamlarini ZIP qilib beradi.",f:[]},
+iconpack:{i:"🧿",n:"Ikonka to'plami",h:"Logotipdan 16 dan 512 px gacha ikonkalar va favicon.ico (sayt yoki ilova uchun). Natija ZIP.",f:[]},
+palette:{i:"🌈",n:"Ranglar palitrasi",h:"Rasmdagi asosiy ranglarni HEX kodlari bilan chiqaradi.",f:[{k:"n",l:"Ranglar soni",t:"range",min:3,max:10,v:6}]},
+ascii:{i:"🔤",n:"ASCII san'at",h:"Rasmni harf va belgilardan iborat matnga aylantiradi.",f:[{k:"width",l:"Kenglik (belgi)",t:"range",min:30,max:120,v:70},{k:"invert",l:"Qora fon uchun (teskari)",t:"check",v:false}]},
+ai_gen:{i:"🤖",n:"AI rasm yaratish",h:"Tasvirlab bering, AI rasm chizadi. Ingliz tilida yozsangiz natija ancha yaxshi. Bepul xizmat: ba'zan sekin yoki band bo'lishi mumkin.",nf:true,nof:true,ep:"/api/ai",f:[{k:"prompt",l:"Nima chizay?",t:"text",v:"",ph:"a cozy wooden cabin in snowy mountains at sunset"},{k:"style",l:"Uslub",t:"select",o:[["","Oddiy"],["photo","Realistik foto"],["anime","Anime"],["3d","3D"],["illustration","Illyustratsiya"],["pixel","Pixel art"],["oil","Moybo'yoq"],["logo","Logo"],["cinematic","Kino kadr"]],v:""},{k:"size",l:"Shakl",t:"select",o:[["1024x1024","Kvadrat"],["768x1344","Vertikal (Stories)"],["1344x768","Gorizontal"]],v:"1024x1024"},{k:"model",l:"Model",t:"select",o:[["flux","Flux (sifatli)"],["turbo","Turbo (tez)"]],v:"flux"},{k:"seed",l:"Seed (bir xil natija uchun, ixtiyoriy)",t:"number",v:""}]},
+ai_edit:{i:"🪄",n:"AI tahrirlash",h:"Rasm tanlang va nimani o'zgartirishni yozing: «fonni dengiz qil», «ko'zoynak qo'sh». Tajriba rejimida: natija har doim ham aniq chiqmaydi.",ep:"/api/ai",fk:"file",f:[{k:"prompt",l:"Nima o'zgarsin?",t:"text",v:"",ph:"change the background to a beach"}]},
+pdf_merge:{i:"🔗",n:"PDF birlashtirish",h:"Bir nechta PDF ni bitta faylga yig'ing (tanlash tartibida).",acc:".pdf,application/pdf",grp:true,f:[]},
+pdf_extract:{i:"📑",n:"PDF sahifa olish",h:"Kerakli sahifalarni ajratib oling. Tartibini ham o'zgartirsa bo'ladi: 3,1,2.",acc:".pdf,application/pdf",f:[{k:"pages",l:"Sahifalar",t:"text",v:"",ph:"1-3,5"}]},
+pdf_delete:{i:"🗑",n:"PDF sahifa o'chirish",h:"Keraksiz sahifalarni olib tashlang.",acc:".pdf,application/pdf",f:[{k:"pages",l:"O'chiriladigan sahifalar",t:"text",v:"",ph:"2,4-6"}]},
+pdf_split:{i:"✂️",n:"PDF ajratish",h:"Har bir sahifani alohida PDF qiladi. Natija ZIP.",acc:".pdf,application/pdf",f:[]},
+pdf_rotate:{i:"🔄",n:"PDF aylantirish",h:"Sahifalarni burib qo'ying. Sahifalar bo'sh qolsa, hammasi buriladi.",acc:".pdf,application/pdf",f:[{k:"angle",l:"Burchak",t:"select",o:[["90","90° o'ngga"],["180","180°"],["270","90° chapga"]],v:"90"},{k:"pages",l:"Sahifalar (ixtiyoriy)",t:"text",v:"",ph:"hammasi"}]},
+pdf_protect:{i:"🔒",n:"PDF parol qo'yish",h:"PDF ni parol bilan shifrlaydi (AES-256). Parolni unutmang, tiklab bo'lmaydi.",acc:".pdf,application/pdf",f:[{k:"password",l:"Parol",t:"text",v:""}]},
+pdf_unlock:{i:"🔓",n:"PDF parolni olib tashlash",h:"Parolini bilgan PDF dan parolni olib tashlaydi.",acc:".pdf,application/pdf",f:[{k:"password",l:"Hozirgi parol",t:"text",v:""}]},
+pdf_images:{i:"🖼",n:"PDF → rasm",h:"PDF sahifalarini rasmga aylantiradi (30 sahifagacha). Natija ZIP.",acc:".pdf,application/pdf",f:[{k:"dpi",l:"Sifat (DPI)",t:"range",min:60,max:200,v:110},FMT(["PNG","JPG"],"PNG")]},
+pdf_text:{i:"📝",n:"PDF dan matn",h:"PDF ichidagi matnni ajratib oladi (skaner PDF uchun OCR kerak).",acc:".pdf,application/pdf",f:[]},
+pdf_compress:{i:"🗜",n:"PDF siqish",h:"PDF hajmini kichraytiradi. Rasmlari ko'p PDF da ko'proq natija beradi.",acc:".pdf,application/pdf",f:[{k:"dpi",l:"Rasm DPI",t:"range",min:60,max:200,v:110},{k:"quality",l:"Rasm sifati",t:"range",min:30,max:90,v:60,u:"%"}]},
+pdf_numbers:{i:"🔢",n:"PDF sahifa raqami",h:"Har bir sahifaga raqam qo'shadi.",acc:".pdf,application/pdf",f:[{k:"pos",l:"Joyi",t:"select",o:[["bc","Pastda markazda"],["br","Pastda o'ngda"],["bl","Pastda chapda"]],v:"bc"},{k:"start",l:"Boshlang'ich raqam",t:"number",v:1},{k:"size",l:"Shrift",t:"range",min:8,max:20,v:11}]}
+};
+Object.assign(T,window.CLIENT_TOOLS||{});
+const CATS=[
+ ["edit","🖼 Rasm",["convert","resize","compress","crop","adjust","filter","rotate","fill","upscale","colorkey","pixelate","round","border","watermark","scan","topdf","strip","info"]],
+ ["make","✨ Ijod",["meme","poster","collage","gif","split","mockup","sticker","passport","socialpack","iconpack","palette","ascii","qr"]],
+ ["ai","🤖 AI",["ai_gen","ai_edit"]],
+ ["pdf","📕 PDF",["pdf_merge","pdf_extract","pdf_delete","pdf_split","pdf_rotate","pdf_compress","pdf_numbers","pdf_images","pdf_text","pdf_protect","pdf_unlock"]],
+ ["txt","✍️ Matn",["translit","textutil","numwords","base64","json","hash","password","ocr"]],
+ ["calc","🧮 Hisob",["currency","percent","loan","bmi","age","units","random","color"]]
+];
+let action="convert",cat="edit",files=[],results=[],busy=false;
+const meta={};
+function drawCats(){
+ $("#cats").innerHTML=CATS.map(([id,n])=>`<button class="cat ${id===cat?"on":""}" data-c="${id}">${n}</button>`).join("");
+ document.querySelectorAll(".cat").forEach(b=>b.onclick=()=>{cat=b.dataset.c;drawCats();drawTools();setAction(CATS.find(c=>c[0]===cat)[2].find(id=>T[id]))});
+}
+function drawTools(){
+ $("#tools").innerHTML=CATS.find(c=>c[0]===cat)[2].filter(id=>T[id]).map(id=>`<button class="tool" data-a="${id}">${T[id].i} ${T[id].n}</button>`).join("");
+ document.querySelectorAll(".tool").forEach(b=>b.onclick=()=>setAction(b.dataset.a));
+}
+const isPdf=t=>!!(t.acc&&t.acc.includes("pdf"));
+function setAction(a){
+ action=a;const t=T[a];
+ document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("on",b.dataset.a===a));
+ const cl=!!t.cl;
+ ["pOpt","bar"].forEach(id=>$("#"+id).classList.toggle("hidden",cl));
+ $("#pIn").classList.toggle("hidden",cl||!!t.nof);
+ $("#cl").classList.toggle("hidden",!cl);
+ const keep=f=>isPdf(t)?/\.pdf$/i.test(f.name):!/\.pdf$/i.test(f.name);
+ files=files.filter(keep);renderFiles();results=[];renderResults();say("");
+ if(cl){t.render($("#cl"));return}
+ $("#hint").textContent=t.h;
+ $("#file").accept=t.acc||"image/*,.heic,.heif";
+ $("#dropHint").textContent=isPdf(t)?"PDF fayl tanlang":t.grp?"Bir nechta fayl tanlang (tartib bo'yicha)":a==="qr"?"Logotip uchun rasm (ixtiyoriy)":a==="poster"?"Fon uchun rasm (ixtiyoriy)":"Galereyadan tanlang yoki bu yerga tashlang";
+ $("#opts").innerHTML=t.f.length?t.f.map(fieldHtml).join(""):`<div class="hint">Qo'shimcha sozlama yo'q. Fayl tanlab "Bajarish" ni bosing.</div>`;
+ $("#opts").oninput=refresh;refresh();
+}
+drawCats();drawTools();
+
+function fieldHtml(f){
+ const sh=f.show?` data-show="${f.show[0]}=${f.show[1]}"`:"";
+ const id=f.k?`f_${f.k}`:"preset";
+ if(f.t==="check")return `<label class="chk"${sh}><input type="checkbox" id="${id}" ${f.v?"checked":""}>${f.l}</label>`;
+ let c="";
+ if(f.t==="select"||f.t==="preset")c=`<select id="${id}">${f.o.map(o=>{const[v,l]=Array.isArray(o)?o:[o,o];return `<option value="${v}" ${v===f.v?"selected":""}>${l}</option>`}).join("")}</select>`;
+ else if(f.t==="range")c=`<input type="range" id="${id}" min="${f.min}" max="${f.max}" value="${f.v}">`;
+ else if(f.t==="color")c=`<input type="color" id="${id}" value="${f.v}">`;
+ else c=`<input type="${f.t}" id="${id}" value="${f.v??""}" placeholder="${f.ph||""}" ${f.t==="number"?'inputmode="numeric" min="0"':""}>`;
+ return `<div${sh}><label>${f.l}${f.t==="range"?`<b id="o_${f.k}">${f.v}${f.u||""}</b>`:""}</label>${c}</div>`;
+}
+function refresh(e){
+ const t=T[action];
+ if(e&&e.target.id==="preset"&&e.target.value){const[w,h]=e.target.value.split("x");$("#f_mode").value="px";$("#f_width").value=w;$("#f_height").value=h==="0"?"":h;}
+ t.f.forEach(f=>{if(f.t==="range"){const el=$("#f_"+f.k);if(el)$("#o_"+f.k).textContent=el.value+(f.u||"")}});
+ document.querySelectorAll("[data-show]").forEach(el=>{const[k,v]=el.dataset.show.split("=");const s=$("#f_"+k);el.classList.toggle("hidden",!!s&&s.value!==v)});
+}
+function collect(){
+ const p={};
+ T[action].f.forEach(f=>{if(!f.k)return;const el=$("#f_"+f.k);if(!el)return;
+  p[f.k]=f.t==="check"?el.checked:(f.t==="range"||f.t==="number")&&el.value!==""?Number(el.value):el.value;});
+ return p;
+}
+
+// ── fayllar
+function addFiles(list){
+ const t=T[action],pdf=isPdf(t);
+ const arr=[...list].filter(f=>pdf?/\.pdf$/i.test(f.name):(f.type.startsWith("image/")||/\.(heic|heif)$/i.test(f.name)));
+ if(!arr.length)return say(pdf?"Faqat PDF fayllar qabul qilinadi":"Faqat rasm fayllari qabul qilinadi","err");
+ files=t.grp?files.concat(arr).slice(0,30):arr.slice(0,30);
+ results=[];renderResults();renderFiles();
+}
+function renderFiles(){
+ $("#files").innerHTML=files.map((f,i)=>{
+  const url=meta[f.name+f.size]?.url||(meta[f.name+f.size]={url:URL.createObjectURL(f)}).url;
+  return `<div class="file"><img class="th" src="${url}" onerror="this.outerHTML='<div class=th>🖼</div>'"><div class="nm"><b>${f.name}</b><span>${kb(f.size)}<span id="d${i}"></span></span></div><button class="x" onclick="rm(${i})">✕</button></div>`}).join("");
+ files.forEach((f,i)=>{const im=new Image();im.onload=()=>{const e=$("#d"+i);if(e)e.textContent=" · "+im.naturalWidth+"×"+im.naturalHeight};im.src=meta[f.name+f.size].url});
+}
+function rm(i){files.splice(i,1);renderFiles()}
+$("#file").onchange=e=>{addFiles(e.target.files);e.target.value=""};
+const dz=$("#drop");
+["dragenter","dragover"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add("over")}));
+["dragleave","drop"].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove("over")}));
+dz.addEventListener("drop",e=>addFiles(e.dataTransfer.files));
+
+// ── ishga tushirish
+function say(m,c){const s=$("#st");s.textContent=m;s.className="st "+(c||"")}
+async function errText(r){const t=await r.text();try{return JSON.parse(t).detail||t}catch(e){return t}}
+async function run(){
+ if(busy)return;const t=T[action];
+ if(!files.length&&!t.nf)return say(isPdf(t)?"Avval PDF tanlang":"Avval rasm tanlang","err");
+ busy=true;$("#run").disabled=true;results=[];renderResults();
+ try{
+  const p=collect();
+  if(action==="qr"){
+   const k=p.kind==="wifi";const esc=v=>String(v||"").replace(/([\\;,:"])/g,"\\$1");
+   p.text=k?`WIFI:T:${p.enc};S:${esc(p.ssid)};P:${p.enc==="nopass"?"":esc(p.pass)};;`:p.text;
+   if(!String(p.text||"").trim()||(k&&!p.ssid))throw new Error(k?"Wi-Fi nomini kiriting":"Matn yoki havolani kiriting");
+  }
+  const jobs=t.nf?[files.slice(0,1)]:t.grp?[files]:files.map(f=>[f]);
+  for(let i=0;i<jobs.length;i++){
+   say(t.ep?"⏳ Ishlanmoqda... (AI uchun 20–60 soniya ketishi mumkin)":`⏳ Ishlanmoqda ${i+1}/${jobs.length}...`);
+   const fd=new FormData();fd.append("action",action);
+   if(t.ep){Object.entries(p).forEach(([k,v])=>fd.append(k,v));if(jobs[i][0])fd.append(t.fk||"file",jobs[i][0])}
+   else{fd.append("params",JSON.stringify(p));jobs[i].forEach(f=>fd.append("files",f))}
+   const r=await fetch(t.ep||"/api/process",{method:"POST",body:fd,headers:{"X-Telegram-Init-Data":INIT}});
+   if(!r.ok)throw new Error(await errText(r));
+   const blob=await r.blob();
+   const m=/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition")||"");
+   const ext=m?m[1].split(".").pop():"png";
+   const base=jobs[i][0]?jobs[i][0].name.replace(/\.[^.]+$/,""):action;
+   const res={blob,name:`${base}_${action}.${ext}`,url:URL.createObjectURL(blob),orig:t.nf?0:jobs[i].reduce((a,f)=>a+f.size,0)};
+   if(blob.type.startsWith("text/"))res.text=await blob.text();
+   results.push(res);
+  }
+  renderResults();say("✅ Tayyor!","ok");hap("success");
+  $("#results").scrollIntoView({behavior:"smooth"});
+ }catch(e){say("❌ "+e.message,"err");hap("error")}
+ finally{busy=false;$("#run").disabled=false}
+}
+$("#run").onclick=run;
+
+// ── natija
+function renderResults(){
+ $("#results").innerHTML=results.length?`<div class="panel res">`+results.map((r,i)=>{
+  const isImg=r.blob.type.startsWith("image/"),isTxt=r.blob.type.startsWith("text/");
+  const diff=r.orig?Math.round((1-r.blob.size/r.orig)*100):0;
+  const info=r.orig?`${kb(r.orig)} → <b>${kb(r.blob.size)}</b>${action!=="topdf"&&diff>0?` (−${diff}%)`:""}`:`<b>${kb(r.blob.size)}</b>`;
+  return `<div style="margin-bottom:16px"><div class="rv"><i></i>${isImg?`<img src="${r.url}">`:isTxt?`<pre class="txt">${(r.text||"").replace(/[&<]/g,c=>c==="&"?"&amp;":"&lt;")}</pre>`:`<div class="pdf">${r.blob.type.includes("zip")?"📦":"📄"}</div><div>${r.name}</div>`}</div>
+  <div class="info">${info}</div>
+  <div class="acts"><button class="main" onclick="sendRes(${i})">📨 Chatga yuborish</button>
+  <button onclick="dl(${i})">⬇️ Yuklab olish</button>${isImg&&!r.blob.type.includes("gif")?`<button onclick="cont(${i})">🔁 Davom ettirish</button>`:isTxt?`<button onclick="cpy(${i})">📋 Nusxa</button>`:"<span></span>"}</div></div>`}).join("")
+  +(results.length>1?`<div class="acts"><button class="main" onclick="sendAll()">📨 Hammasini yuborish (${results.length})</button></div>`:"")+`</div>`:"";
+}
+async function sendOne(i){
+ const r=results[i];const fd=new FormData();
+ fd.append("file",new File([r.blob],r.name,{type:r.blob.type}));
+ const x=await fetch("/api/send",{method:"POST",body:fd,headers:{"X-Telegram-Init-Data":INIT}});
+ if(!x.ok)throw new Error(await errText(x));
+}
+async function sendRes(i){
+ if(!INIT)return dl(i);
+ try{say("📨 Yuborilmoqda...");await sendOne(i);say("✅ Chatga yuborildi","ok");hap("success")}
+ catch(e){say("❌ "+e.message,"err");hap("error")}
+}
+async function sendAll(){
+ if(!INIT)return results.forEach((_,i)=>dl(i));
+ try{for(let i=0;i<results.length;i++){say(`📨 Yuborilmoqda ${i+1}/${results.length}...`);await sendOne(i)}say("✅ Hammasi chatga yuborildi","ok");hap("success")}
+ catch(e){say("❌ "+e.message,"err")}
+}
+function cpy(i){navigator.clipboard&&navigator.clipboard.writeText(results[i].text||"").then(()=>say("📋 Nusxa olindi","ok"))}
+function dl(i){
+ const r=results[i];const a=document.createElement("a");a.href=r.url;a.download=r.name;document.body.appendChild(a);a.click();a.remove();
+ if(INIT)say("Telegramda yuklash ishlamasa, «Chatga yuborish» ni bosing");
+}
+function cont(i){
+ const r=results[i];files=[new File([r.blob],r.name,{type:r.blob.type})];results=[];renderResults();renderFiles();
+ window.scrollTo({top:0,behavior:"smooth"});say("Natija yangi rasm sifatida olindi. Boshqa vositani tanlang.","ok");
+}
+setAction("convert");
+</script></body></html>
